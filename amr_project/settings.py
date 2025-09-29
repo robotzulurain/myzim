@@ -96,3 +96,42 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
+# --- production / deployment helpers ---
+import os
+import dj_database_url
+
+# SECRET_KEY / DEBUG from env
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-for-local")
+DEBUG = os.environ.get("DEBUG", "") == "1"
+
+# allowed hosts (space separated)
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost 127.0.0.1").split()
+
+# DATABASE via DATABASE_URL (Neon)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    }
+
+# static files config for collectstatic / WhiteNoise
+try:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+except NameError:
+    from pathlib import Path
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATIC_URL = "/static/"
+
+# Insert WhiteNoise middleware (only if not already present)
+if not any("whitenoise.middleware.WhiteNoiseMiddleware" in m for m in MIDDLEWARE):
+    try:
+        sec_idx = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware")
+        MIDDLEWARE.insert(sec_idx + 1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    except ValueError:
+        # if SecurityMiddleware missing, put WhiteNoise at top
+        MIDDLEWARE.insert(0, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# --- end production snippet ---
