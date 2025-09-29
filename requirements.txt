@@ -5,3 +5,4 @@ whitenoise
 dj-database-url
 django-cors-headers
 python-dotenv
+djangorestframework
